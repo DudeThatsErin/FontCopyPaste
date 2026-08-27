@@ -3,12 +3,10 @@ import { UnicodeFonts } from './unicode-fonts.js';
 import { GoogleFonts } from './google-fonts.js';
 import { toOpaqueHex, toRgba } from './lib/color.js';
 import { copyPlain } from './lib/clipboard.js';
-import { copyImage, downloadImage } from './lib/image.js';
 import { read, usePersistentState, write } from './lib/storage.js';
 import ResultList from './components/ResultList.jsx';
 import EmojiPicker from './components/EmojiPicker.jsx';
 import ImageSettings from './components/ImageSettings.jsx';
-import ImagePreview from './components/ImagePreview.jsx';
 
 const TABS = [
   { id: 'unicode', label: 'Unicode fonts' },
@@ -45,7 +43,6 @@ export default function App() {
   const [theme, setTheme] = usePersistentState('theme', defaultTheme());
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('unicode');
-  const [previewId, setPreviewId] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
 
   /* Image-export styling. The chosen background image is a decoded <img> held
@@ -130,14 +127,6 @@ export default function App() {
     toast(adding ? 'Added to favorites' : 'Removed from favorites');
   }, [favorites, setFavorites, toast]);
 
-  const preview = previewId ? resolve(previewId) : null;
-  const previewText = preview ? preview.output : sourceText;
-  const previewFamily = preview?.family || null;
-
-  useEffect(() => {
-    if (previewFamily) GoogleFonts.load(previewFamily);
-  }, [previewFamily]);
-
   /* The PNG keeps the true rgba — canvas has a real alpha channel, unlike the
    * RTF conversion the rich-text path has to survive. */
   const imageOptions = useMemo(() => ({
@@ -156,11 +145,26 @@ export default function App() {
     }
   }), [rgba, size, imageStyle]);
 
-  const previewImageOptions = useMemo(() => ({
-    ...imageOptions,
-    text: previewText,
-    fontFamily: previewFamily
-  }), [imageOptions, previewText, previewFamily]);
+  /* CSS mirror of what the canvas draws, so every row on the page looks like
+   * the PNG that row's export buttons produce. */
+  const cardStyle = useMemo(() => {
+    const style = {
+      padding: `${imageStyle.padding}px`,
+      borderRadius: `${imageStyle.radius}px`
+    };
+    const bw = parseInt(imageStyle.borderWidth, 10);
+    if (bw > 0) {
+      style.border = `${bw}px solid ${toRgba(imageStyle.borderColor, imageStyle.borderAlpha)}`;
+    }
+    if (imageStyle.bgMode === 'color') {
+      style.background = toRgba(imageStyle.bgColor, imageStyle.bgAlpha);
+    } else if (imageStyle.bgMode === 'image' && imageStyle.bgImageUrl) {
+      style.backgroundImage = `url(${imageStyle.bgImageUrl})`;
+      style.backgroundSize = 'cover';
+      style.backgroundPosition = 'center';
+    }
+    return style;
+  }, [imageStyle]);
 
   const insertEmoji = useCallback((emoji) => {
     const el = textareaRef.current;
@@ -179,12 +183,11 @@ export default function App() {
     opaqueHex,
     size,
     imageOptions,
-    isPreviewing: previewId === item.id,
+    cardStyle,
     isFav: favorites.includes(item.id),
     onToggleFav: toggleFav,
-    onPreview: (i) => setPreviewId(i.id),
     onToast: toast
-  }), [rgba, opaqueHex, size, imageOptions, previewId, favorites, toggleFav, toast]);
+  }), [rgba, opaqueHex, size, imageOptions, cardStyle, favorites, toggleFav, toast]);
 
   return (
     <>
@@ -295,49 +298,10 @@ export default function App() {
 
           <ImageSettings settings={imageStyle} update={updateImageStyle} onToast={toast} />
 
-          <div className="image-stage">
-            <div className="image-stage-head">
-              <div>
-                <span className="preview-tag preview-tag-inline">Image preview</span>
-                <p className="stage-title">
-                  {preview
-                    ? `${preview.name}${preview.kind === 'google' ? ' · Google Font' : ''}`
-                    : 'Default text style'}
-                </p>
-              </div>
-              <div className="image-actions">
-                <button
-                  type="button"
-                  className="ghost-btn"
-                  onClick={() => copyImage(previewImageOptions).then(
-                    () => toast('Image copied — exact colors, paste into Notes'),
-                    () => downloadImage(previewImageOptions).then(
-                      () => toast('Clipboard images unsupported here — image downloaded'),
-                      () => toast('Couldn’t create the image')
-                    )
-                  )}
-                >
-                  Copy image
-                </button>
-                <button
-                  type="button"
-                  className="ghost-btn"
-                  onClick={() => downloadImage(previewImageOptions).then(
-                    () => toast('Image downloaded'),
-                    () => toast('Couldn’t create the image')
-                  )}
-                >
-                  Download PNG
-                </button>
-              </div>
-            </div>
-            <ImagePreview options={previewImageOptions} />
-            <p className="sub-hint">
-              These settings apply to <strong>every</strong> style below — tap any style&rsquo;s
-              sample to preview it here, or just hit its <strong>Copy as image</strong> button
-              to get that font with this exact styling.
-            </p>
-          </div>
+          <p className="sub-hint">
+            Every style below is shown with these settings, and each one has its own
+            <strong> Copy image</strong> and <strong>Download PNG</strong> buttons.
+          </p>
         </section>
 
         <nav className="tabs" role="tablist">
@@ -367,13 +331,14 @@ export default function App() {
             </p>
             <ul className="note note-list">
               <li><strong>Copy text</strong> — styled Unicode text; works in Notes.</li>
-              <li><strong>Copy as image</strong> — preserves the exact colors in Notes, but isn&rsquo;t editable or searchable.</li>
+              <li><strong>Copy image</strong> — preserves the exact colors in Notes, but isn&rsquo;t editable or searchable.</li>
               <li><strong>Copy rich text</strong> — best for Pages, Mail and Word; <em>not supported by iPhone Notes</em>.</li>
             </ul>
-            <p className="sub-hint">
-              Tap any sample below to show it in the preview at the top.
-              {search && ` · Showing ${unicodeItems.length} of ${UnicodeFonts.styles.length} styles`}
-            </p>
+            {search && (
+              <p className="sub-hint">
+                Showing {unicodeItems.length} of {UnicodeFonts.styles.length} styles
+              </p>
+            )}
             <div className="results">
               <ResultList
                 items={unicodeItems}
@@ -392,10 +357,11 @@ export default function App() {
               <strong> Copy as image</strong> is the only option that reproduces the
               typeface and color exactly everywhere — including iPhone Notes.
             </p>
-            <p className="sub-hint">
-              Tap any sample below to show it in the preview at the top.
-              {search && ` · Showing ${googleItems.length} of ${GoogleFonts.all.length} fonts`}
-            </p>
+            {search && (
+              <p className="sub-hint">
+                Showing {googleItems.length} of {GoogleFonts.all.length} fonts
+              </p>
+            )}
             <div className="results results-google">
               <ResultList
                 items={googleItems}

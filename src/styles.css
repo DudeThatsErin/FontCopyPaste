@@ -58,7 +58,7 @@ main {
   gap: 12px;
   max-width: 960px;
   margin: 0 auto;
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(12px);
 }
@@ -580,40 +580,33 @@ input[type="range"] {
   letter-spacing: 0.04em;
 }
 
-/* ── Image stage ─────────────────────────────────────────────────────── */
+/* ── Sample cards ───────────────────────────────────────────────────── */
 
-.image-stage {
-  margin-top: 14px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+/* Each row's sample sits in a card styled to match the PNG that row exports,
+ * so the list itself is the preview — background, padding, radius and border
+ * all come from the shared image-export settings. */
+.sample-card {
+  display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.image-stage-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+.sample-card .row-sample {
+  margin: 0;
+  cursor: default;
 }
 
-.preview-tag-inline {
-  position: static;
-  display: block;
-  color: var(--text-dim);
+/* Checkerboard behind transparent cards so the text stays readable. */
+.results .sample-card {
+  background-image:
+    linear-gradient(45deg, var(--surface-2) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--surface-2) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--surface-2) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-2) 75%);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
 }
 
-.stage-title {
-  margin: 2px 0 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.image-stage .image-actions { margin-top: 0; }
-
-.image-stage .image-preview {
-  margin-top: 0;
-  padding: 0;
-  border: 0;
-}
+/* A real background (color or image) is set inline and must win. */
+.sample-card[style*="background"] { background-image: none; }

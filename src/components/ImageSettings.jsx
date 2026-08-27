@@ -10,9 +10,9 @@ export default function ImageSettings({ settings, update, onToast }) {
     if (!file) return;
     if (!file.type.startsWith('image/')) { onToast('That file isn’t an image'); return; }
     try {
-      const img = await loadImageFile(file);
-      update({ bgMode: 'image', bgImage: img, bgImageName: file.name });
-      onToast('Background image set');
+      const { img, url } = await loadImageFile(file);
+      update({ bgMode: 'image', bgImage: img, bgImageUrl: url, bgImageName: file.name });
+      onToast('Background image set — it’s behind every style below');
     } catch {
       onToast('Couldn’t read that image');
     }
@@ -90,7 +90,9 @@ export default function ImageSettings({ settings, update, onToast }) {
                   <button
                     type="button"
                     className="ghost-btn danger"
-                    onClick={() => update({ bgImage: null, bgImageName: '', bgMode: 'transparent' })}
+                    onClick={() => update({
+                      bgImage: null, bgImageUrl: '', bgImageName: '', bgMode: 'transparent'
+                    })}
                   >
                     Remove
                   </button>

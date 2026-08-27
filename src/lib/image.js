@@ -131,12 +131,13 @@ export async function downloadImage(options, filename = 'fonts-erinskidds.png') 
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/* Uploaded file -> decoded <img>, ready to draw onto the canvas. */
+/* Uploaded file -> decoded <img> for the canvas, plus the object URL so the
+ * same picture can back the on-page rows via CSS. */
 export function loadImageFile(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => resolve(img);
+    img.onload = () => resolve({ img, url });
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
     img.src = url;
   });

@@ -27,7 +27,7 @@ function useLazyFont(family) {
   return ref;
 }
 
-/* Swaps a button's label to "Copied" for a beat after a successful copy. */
+/* Swaps a button's label for a beat after a successful action. */
 function useFlash() {
   const [flashed, setFlashed] = useState(false);
   const timer = useRef(null);
@@ -41,46 +41,51 @@ function useFlash() {
 }
 
 export default function Row({
-  item, rgba, opaqueHex, size, imageOptions,
-  isPreviewing, isFav, onToggleFav, onPreview, onToast
+  item, rgba, opaqueHex, size, imageOptions, cardStyle,
+  isFav, onToggleFav, onToast
 }) {
   const isGoogle = item.kind === 'google';
   const sampleRef = useLazyFont(isGoogle ? item.family : null);
   const [textFlashed, flashText] = useFlash();
   const [imageFlashed, flashImage] = useFlash();
+  const [savedFlashed, flashSaved] = useFlash();
   const [richFlashed, flashRich] = useFlash();
 
-  const imageArgs = () => ({
-    ...imageOptions,
-    text: item.output,
-    fontFamily: isGoogle ? item.family : null
-  });
+  /* Make sure the @font-face exists before the canvas asks for it — a row
+   * exported before it scrolled into view would render in the fallback face. */
+  const imageArgs = () => {
+    if (isGoogle) GoogleFonts.load(item.family);
+    return { ...imageOptions, text: item.output, fontFamily: isGoogle ? item.family : null };
+  };
+
+  const fileName = `${item.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`;
 
   const handleText = () => {
     copyPlain(item.output).then(() => {
       flashText();
-      onPreview(item);
       onToast(isGoogle ? 'Plain text copied (no font styling)' : 'Copied — paste anywhere');
     }, () => onToast('Copy blocked by browser'));
   };
 
   const handleImage = () => {
-    onPreview(item);
-    /* Make sure the @font-face exists before the canvas asks for it — a row
-     * copied before it scrolled into view would otherwise render in the
-     * fallback face. */
-    if (isGoogle) GoogleFonts.load(item.family);
     copyImage(imageArgs()).then(() => {
       flashImage();
       onToast('Image copied — exact colors, paste into Notes');
     }, () => {
       /* Firefox and older Safari can't put a PNG on the clipboard at all, so
        * fall back to saving the file rather than failing outright. */
-      downloadImage(imageArgs()).then(
+      downloadImage(imageArgs(), fileName).then(
         () => onToast('Clipboard images unsupported here — image downloaded'),
         () => onToast('Couldn’t create the image')
       );
     });
+  };
+
+  const handleDownload = () => {
+    downloadImage(imageArgs(), fileName).then(
+      () => { flashSaved(); onToast(`Saved ${fileName}`); },
+      () => onToast('Couldn’t create the image')
+    );
   };
 
   const handleRich = () => {
@@ -91,30 +96,27 @@ export default function Row({
       size
     }).then(() => {
       flashRich();
-      onPreview(item);
       onToast('Rich text copied — best in Pages, Mail, Word');
     }, () => onToast('Rich copy not supported here'));
   };
 
   return (
-    <div className={`row${isPreviewing ? ' is-previewing' : ''}`} data-id={item.id}>
+    <div className="row" data-id={item.id}>
       <div className="row-main">
-        <div className="row-name">
-          {item.name}{isGoogle ? ' · Google Font' : ''}
-          {isPreviewing && <span className="previewing-tag">previewing above</span>}
-        </div>
-        <div
-          className="row-sample"
-          ref={sampleRef}
-          title="Tap to show this style in the preview at the top"
-          onClick={() => onPreview(item)}
-          style={{
-            color: rgba,
-            fontSize: `${size}px`,
-            fontFamily: isGoogle ? `'${item.family}', sans-serif` : undefined
-          }}
-        >
-          {item.output}
+        <div className="row-name">{item.name}{isGoogle ? ' · Google Font' : ''}</div>
+        {/* The card mirrors the PNG export, so the row is the preview. */}
+        <div className="sample-card" style={cardStyle}>
+          <div
+            className="row-sample"
+            ref={sampleRef}
+            style={{
+              color: rgba,
+              fontSize: `${size}px`,
+              fontFamily: isGoogle ? `'${item.family}', sans-serif` : undefined
+            }}
+          >
+            {item.output}
+          </div>
         </div>
       </div>
       <div className="row-actions">
@@ -129,10 +131,18 @@ export default function Row({
         <button
           type="button"
           className={`act act-primary${imageFlashed ? ' is-done' : ''}`}
-          title="PNG with your exact colors — pastes into Notes on iPhone and Mac, but isn't editable text"
+          title="PNG with your exact colors and background — pastes into Notes on iPhone and Mac"
           onClick={handleImage}
         >
-          {imageFlashed ? 'Copied' : 'Copy as image'}
+          {imageFlashed ? 'Copied' : 'Copy image'}
+        </button>
+        <button
+          type="button"
+          className={`act${savedFlashed ? ' is-done' : ''}`}
+          title="Save this style as a PNG file"
+          onClick={handleDownload}
+        >
+          {savedFlashed ? 'Saved' : 'Download PNG'}
         </button>
         <button
           type="button"
