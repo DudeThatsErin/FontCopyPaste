@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { GoogleFonts } from '../google-fonts.js';
-import { copyPlain, copyRich } from '../lib/clipboard.js';
+import { copyHtml, copyPlain, copyRich } from '../lib/clipboard.js';
 import { copyImage, downloadImage } from '../lib/image.js';
 
 /* Fetch a webfont only once the row scrolls into view — the catalog is a few
@@ -27,7 +27,6 @@ function useLazyFont(family) {
   return ref;
 }
 
-/* Swaps a button's label for a beat after a successful action. */
 function useFlash() {
   const [flashed, setFlashed] = useState(false);
   const timer = useRef(null);
@@ -41,7 +40,7 @@ function useFlash() {
 }
 
 export default function Row({
-  item, rgba, opaqueHex, size, imageOptions, cardStyle,
+  item, rgba, opaqueHex, size, imageOptions, htmlOptions, cardStyle, textLayoutStyle,
   isFav, onToggleFav, onToast
 }) {
   const isGoogle = item.kind === 'google';
@@ -50,13 +49,18 @@ export default function Row({
   const [imageFlashed, flashImage] = useFlash();
   const [savedFlashed, flashSaved] = useFlash();
   const [richFlashed, flashRich] = useFlash();
+  const [htmlFlashed, flashHtml] = useFlash();
 
-  /* Make sure the @font-face exists before the canvas asks for it — a row
-   * exported before it scrolled into view would render in the fallback face. */
   const imageArgs = () => {
     if (isGoogle) GoogleFonts.load(item.family);
     return { ...imageOptions, text: item.output, fontFamily: isGoogle ? item.family : null };
   };
+
+  const htmlArgs = () => ({
+    ...htmlOptions,
+    text: item.output,
+    family: isGoogle ? item.family : null
+  });
 
   const fileName = `${item.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`;
 
@@ -70,10 +74,8 @@ export default function Row({
   const handleImage = () => {
     copyImage(imageArgs()).then(() => {
       flashImage();
-      onToast('Image copied — exact colors, paste into Notes');
+      onToast('Image copied — includes the background image');
     }, () => {
-      /* Firefox and older Safari can't put a PNG on the clipboard at all, so
-       * fall back to saving the file rather than failing outright. */
       downloadImage(imageArgs(), fileName).then(
         () => onToast('Clipboard images unsupported here — image downloaded'),
         () => onToast('Couldn’t create the image')
@@ -100,22 +102,30 @@ export default function Row({
     }, () => onToast('Rich copy not supported here'));
   };
 
+  const handleHtml = () => {
+    copyHtml(htmlArgs()).then(() => {
+      flashHtml();
+      onToast('HTML copied — paste into Obsidian');
+    }, () => onToast('HTML copy blocked by browser'));
+  };
+
   return (
     <div className="row" data-id={item.id}>
       <div className="row-main">
         <div className="row-name">{item.name}{isGoogle ? ' · Google Font' : ''}</div>
-        {/* The card mirrors the PNG export, so the row is the preview. */}
         <div className="sample-card" style={cardStyle}>
-          <div
-            className="row-sample"
-            ref={sampleRef}
-            style={{
-              color: rgba,
-              fontSize: `${size}px`,
-              fontFamily: isGoogle ? `'${item.family}', sans-serif` : undefined
-            }}
-          >
-            {item.output}
+          <div className="sample-text-wrap" style={textLayoutStyle}>
+            <div
+              className="row-sample"
+              ref={sampleRef}
+              style={{
+                color: rgba,
+                fontSize: `${size}px`,
+                fontFamily: isGoogle ? `'${item.family}', sans-serif` : undefined
+              }}
+            >
+              {item.output}
+            </div>
           </div>
         </div>
       </div>
@@ -130,8 +140,16 @@ export default function Row({
         </button>
         <button
           type="button"
+          className={`act${htmlFlashed ? ' is-done' : ''}`}
+          title="Copy literal HTML source for Obsidian. Background images are excluded."
+          onClick={handleHtml}
+        >
+          {htmlFlashed ? 'Copied' : 'Copy HTML'}
+        </button>
+        <button
+          type="button"
           className={`act act-primary${imageFlashed ? ' is-done' : ''}`}
-          title="PNG with your exact colors and background — pastes into Notes on iPhone and Mac"
+          title="PNG with your exact colors and background image"
           onClick={handleImage}
         >
           {imageFlashed ? 'Copied' : 'Copy image'}
