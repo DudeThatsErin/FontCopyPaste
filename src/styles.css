@@ -610,3 +610,113 @@ input[type="range"] {
 
 /* A real background (color or image) is set inline and must win. */
 .sample-card[style*="background"] { background-image: none; }
+
+/* ── Layout / resize controls ────────────────────────────────────────── */
+
+.settings-block {
+  min-width: 0;
+}
+
+.dimension-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dimension-field {
+  flex: 1 1 150px;
+}
+
+.dimension-x {
+  padding-bottom: 8px;
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+.mini-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.mini-field input[type="number"] {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.mini-field input[type="number"]:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.unit-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unit-input input { flex: 1 1 auto; }
+.unit-input > span {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.setting-inline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+
+.check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.check-label input { accent-color: var(--accent); }
+.compact-btn { padding: 5px 9px; font-size: 12px; }
+
+.margin-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(70px, 1fr));
+  gap: 8px;
+}
+
+/* The row preview mirrors the fixed output canvas. The inner flex item gives
+ * text-align a real width to align within, while its margin matches the canvas. */
+.sample-card {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: top;
+}
+
+.sample-text-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sample-text-wrap .row-sample {
+  width: 100%;
+}
+
+@media (max-width: 620px) {
+  .margin-grid { grid-template-columns: repeat(2, minmax(90px, 1fr)); }
+}

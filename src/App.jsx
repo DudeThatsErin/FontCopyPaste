@@ -58,7 +58,16 @@ export default function App() {
     borderWidth: read('borderWidth', '0'),
     borderColor: read('borderColor', '#7c5cff'),
     borderAlpha: read('borderAlpha', '1'),
+    outputWidth: read('outputWidth', ''),
+    outputHeight: read('outputHeight', ''),
+    lockAspect: read('lockAspect', true),
+    textAlign: read('textAlign', 'left'),
+    marginTop: read('marginTop', '0'),
+    marginRight: read('marginRight', '0'),
+    marginBottom: read('marginBottom', '0'),
+    marginLeft: read('marginLeft', '0'),
     bgImage: null,
+    bgImageUrl: '',
     bgImageName: ''
   }));
 
@@ -66,7 +75,7 @@ export default function App() {
   const updateImageStyle = useCallback((patch) => {
     setImageStyle((prev) => ({ ...prev, ...patch }));
     Object.entries(patch).forEach(([k, v]) => {
-      if (k !== 'open' && k !== 'bgImage') write(k, v);
+      if (!['open', 'bgImage', 'bgImageUrl', 'bgImageName'].includes(k)) write(k, v);
     });
   }, []);
 
@@ -129,11 +138,22 @@ export default function App() {
 
   /* The PNG keeps the true rgba — canvas has a real alpha channel, unlike the
    * RTF conversion the rich-text path has to survive. */
+  const margin = useMemo(() => ({
+    top: parseInt(imageStyle.marginTop, 10) || 0,
+    right: parseInt(imageStyle.marginRight, 10) || 0,
+    bottom: parseInt(imageStyle.marginBottom, 10) || 0,
+    left: parseInt(imageStyle.marginLeft, 10) || 0
+  }), [imageStyle.marginTop, imageStyle.marginRight, imageStyle.marginBottom, imageStyle.marginLeft]);
+
   const imageOptions = useMemo(() => ({
     color: rgba,
     fontSize: parseInt(size, 10),
+    width: imageStyle.outputWidth || null,
+    height: imageStyle.outputHeight || null,
     padding: parseInt(imageStyle.padding, 10),
     radius: parseInt(imageStyle.radius, 10),
+    align: imageStyle.textAlign,
+    margin,
     background: {
       mode: imageStyle.bgMode,
       color: toRgba(imageStyle.bgColor, imageStyle.bgAlpha),
@@ -143,7 +163,28 @@ export default function App() {
       width: parseInt(imageStyle.borderWidth, 10),
       color: toRgba(imageStyle.borderColor, imageStyle.borderAlpha)
     }
-  }), [rgba, size, imageStyle]);
+  }), [rgba, size, imageStyle, margin]);
+
+  /* Literal HTML copied for Obsidian. Background images are intentionally left
+   * out; a solid background color still carries over. */
+  const htmlOptions = useMemo(() => ({
+    color: rgba,
+    size: parseInt(size, 10),
+    width: imageStyle.outputWidth || null,
+    height: imageStyle.outputHeight || null,
+    padding: parseInt(imageStyle.padding, 10),
+    radius: parseInt(imageStyle.radius, 10),
+    align: imageStyle.textAlign,
+    margin,
+    background: {
+      mode: imageStyle.bgMode === 'color' ? 'color' : 'transparent',
+      color: toRgba(imageStyle.bgColor, imageStyle.bgAlpha)
+    },
+    border: {
+      width: parseInt(imageStyle.borderWidth, 10),
+      color: toRgba(imageStyle.borderColor, imageStyle.borderAlpha)
+    }
+  }), [rgba, size, imageStyle, margin]);
 
   /* CSS mirror of what the canvas draws, so every row on the page looks like
    * the PNG that row's export buttons produce. */
@@ -152,6 +193,8 @@ export default function App() {
       padding: `${imageStyle.padding}px`,
       borderRadius: `${imageStyle.radius}px`
     };
+    if (imageStyle.outputWidth) style.width = `${imageStyle.outputWidth}px`;
+    if (imageStyle.outputHeight) style.height = `${imageStyle.outputHeight}px`;
     const bw = parseInt(imageStyle.borderWidth, 10);
     if (bw > 0) {
       style.border = `${bw}px solid ${toRgba(imageStyle.borderColor, imageStyle.borderAlpha)}`;
@@ -165,6 +208,11 @@ export default function App() {
     }
     return style;
   }, [imageStyle]);
+
+  const textLayoutStyle = useMemo(() => ({
+    margin: `${margin.top}px ${margin.right}px ${margin.bottom}px ${margin.left}px`,
+    textAlign: imageStyle.textAlign
+  }), [margin, imageStyle.textAlign]);
 
   const insertEmoji = useCallback((emoji) => {
     const el = textareaRef.current;
@@ -183,11 +231,13 @@ export default function App() {
     opaqueHex,
     size,
     imageOptions,
+    htmlOptions,
     cardStyle,
+    textLayoutStyle,
     isFav: favorites.includes(item.id),
     onToggleFav: toggleFav,
     onToast: toast
-  }), [rgba, opaqueHex, size, imageOptions, cardStyle, favorites, toggleFav, toast]);
+  }), [rgba, opaqueHex, size, imageOptions, htmlOptions, cardStyle, textLayoutStyle, favorites, toggleFav, toast]);
 
   return (
     <>
@@ -299,8 +349,9 @@ export default function App() {
           <ImageSettings settings={imageStyle} update={updateImageStyle} onToast={toast} />
 
           <p className="sub-hint">
-            Every style below is shown with these settings, and each one has its own
-            <strong> Copy image</strong> and <strong>Download PNG</strong> buttons.
+            Every style below is shown with these settings. <strong>Copy HTML</strong> copies
+            editable markup for Obsidian without the background image; <strong>Copy image</strong>
+            includes the complete visual.
           </p>
         </section>
 
@@ -331,7 +382,8 @@ export default function App() {
             </p>
             <ul className="note note-list">
               <li><strong>Copy text</strong> — styled Unicode text; works in Notes.</li>
-              <li><strong>Copy image</strong> — preserves the exact colors in Notes, but isn&rsquo;t editable or searchable.</li>
+              <li><strong>Copy HTML</strong> — copies literal styled HTML for Obsidian; uploaded background images are omitted.</li>
+              <li><strong>Copy image</strong> — preserves the complete visual, including a background image, but isn&rsquo;t editable or searchable.</li>
               <li><strong>Copy rich text</strong> — best for Pages, Mail and Word; <em>not supported by iPhone Notes</em>.</li>
             </ul>
             {search && (
