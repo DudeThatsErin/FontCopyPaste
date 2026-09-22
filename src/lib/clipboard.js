@@ -274,6 +274,16 @@ export function buildObsidianHtml({
   );
 }
 
+/*
+ * Copy the literal HTML source as plain text so Markdown editors such as
+ * Obsidian can keep it editable while rendering it in the note.
+ */
+export function copyHtml(options) {
+  return copyPlain(
+    buildObsidianHtml(options)
+  );
+}
+
 function legacyCopy(text) {
   const ta =
     document.createElement('textarea');
