@@ -149,7 +149,7 @@ export default function Row({
         <button
           type="button"
           className={`act act-primary${imageFlashed ? ' is-done' : ''}`}
-          title="PNG with your exact colors and background image"
+          title="PNG with your exact colors and background image (uses the Journal-safe crop buffer when enabled)"
           onClick={handleImage}
         >
           {imageFlashed ? 'Copied' : 'Copy image'}
@@ -157,7 +157,7 @@ export default function Row({
         <button
           type="button"
           className={`act${savedFlashed ? ' is-done' : ''}`}
-          title="Save this style as a PNG file"
+          title="Save this style as a PNG file (uses the Journal-safe crop buffer when enabled)"
           onClick={handleDownload}
         >
           {savedFlashed ? 'Saved' : 'Download PNG'}

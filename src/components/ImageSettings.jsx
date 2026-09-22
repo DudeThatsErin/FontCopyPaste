@@ -123,6 +123,22 @@ export default function ImageSettings({ settings, update, onToast }) {
         </div>
 
         <div className="control settings-block">
+          <span className="field-label">Journal export</span>
+          <label className="check-label">
+            <input
+              type="checkbox"
+              checked={settings.journalSafe}
+              onChange={(e) => update({ journalSafe: e.target.checked })}
+            />
+            Use Journal-safe crop buffer
+          </label>
+          <p className="sub-hint">
+            Copy image and Download PNG keep the finished banner centered in a 5:1 safe area,
+            with transparent sacrificial space outside it for Journal to crop. The preview is unchanged.
+          </p>
+        </div>
+
+        <div className="control settings-block">
           <span className="field-label">Text alignment</span>
           <div className="seg" role="group" aria-label="Text alignment">
             {[['left', 'Left'], ['center', 'Center'], ['right', 'Right']].map(([value, label]) => (

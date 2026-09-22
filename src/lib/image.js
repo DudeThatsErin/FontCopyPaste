@@ -4,6 +4,8 @@
 
 const SCALE = 2;          // render at 2x so the PNG stays crisp when scaled up
 const LINE_HEIGHT = 1.3;
+const JOURNAL_SAFE_ASPECT = 5;
+const JOURNAL_EXPORT_ASPECT = 8;
 
 /* Safari <16.4 and older Chrome lack ctx.roundRect. */
 function roundRect(ctx, x, y, w, h, r) {
@@ -67,6 +69,10 @@ export async function renderTextToCanvas({
   // null / blank keeps the original automatic sizing behavior.
   width = null,
   height = null,
+
+  // Keeps the completed banner in the center of a wider export canvas so
+  // Journal can crop its edges without touching the artwork.
+  journalSafe = false,
 
   padding = 24,
   radius = 12,
@@ -144,8 +150,16 @@ export async function renderTextToCanvas({
    * Aspect-ratio locking is handled by the UI because the renderer only needs
    * to know the final requested dimensions.
    */
-  const canvasWidth = positiveInt(width) || naturalWidth;
-  const canvasHeight = positiveInt(height) || naturalHeight;
+  let canvasWidth = positiveInt(width) || naturalWidth;
+  let canvasHeight = positiveInt(height) || naturalHeight;
+
+  /* A Journal-safe card is deliberately a 5:1 banner. Grow the canvas around
+   * the finished content (never pad inside or crop it) so even short text has
+   * a consistent central safe area. */
+  if (journalSafe) {
+    canvasHeight = Math.max(canvasHeight, Math.ceil(canvasWidth / JOURNAL_SAFE_ASPECT));
+    canvasWidth = Math.ceil(canvasHeight * JOURNAL_SAFE_ASPECT);
+  }
 
   const canvas = document.createElement('canvas');
 
@@ -243,6 +257,14 @@ export async function renderTextToCanvas({
     rightEdge - leftEdge
   );
 
+  /* Auto-sized cards already fit the text exactly. A Journal-safe card can be
+   * taller to hold its 5:1 shape, so center the complete text-and-margin block
+   * vertically within the finished banner rather than adding apparent padding
+   * above it. */
+  const contentHeight = textHeight + mt + mb;
+  const availableHeight = Math.max(0, canvasHeight - bw * 2 - p * 2);
+  const verticalOffset = Math.max(0, (availableHeight - contentHeight) / 2);
+
   ctx.save();
 
   /*
@@ -288,6 +310,7 @@ export async function renderTextToCanvas({
     const y =
       bw +
       p +
+      verticalOffset +
       mt +
       lineHeight * (i + 0.5);
 
@@ -300,7 +323,18 @@ export async function renderTextToCanvas({
 
   ctx.restore();
 
-  return canvas;
+  if (!journalSafe) return canvas;
+
+  /* The outer canvas is intentionally transparent. It is crop buffer, not
+   * design padding: Journal may discard it while the central 5:1 banner stays
+   * intact. Both canvases are already at the same 2x export resolution. */
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = Math.ceil(canvas.height * JOURNAL_EXPORT_ASPECT);
+  exportCanvas.height = canvas.height;
+  const exportCtx = exportCanvas.getContext('2d');
+  exportCtx.drawImage(canvas, (exportCanvas.width - canvas.width) / 2, 0);
+
+  return exportCanvas;
 }
 
 export function canvasToBlob(canvas) {
