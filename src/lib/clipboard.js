@@ -193,22 +193,33 @@ export function buildObsidianHtml({
     ) || 0;
 
   /*
-   * OUTER CARD
+   * Use one paragraph instead of an outer card + inner text div.
    *
-   * This contains the dimensions, padding, radius, solid background color
-   * and border.
-   *
-   * Background images are deliberately excluded.
+   * The old inner text margins are added to the card padding so the
+   * visual spacing stays the same without needing a second element.
    */
-  let outer =
+  const paddingTop =
+    p + mt;
+
+  const paddingRight =
+    p + mr;
+
+  const paddingBottom =
+    p + mb;
+
+  const paddingLeft =
+    p + ml;
+
+  let style =
     'box-sizing:border-box;' +
-    'display:block;';
+    'display:block;' +
+    'margin:0;';
 
   if (
     Number.isFinite(w) &&
     w > 0
   ) {
-    outer +=
+    style +=
       `width:${w}px;`;
   }
 
@@ -216,43 +227,34 @@ export function buildObsidianHtml({
     Number.isFinite(h) &&
     h > 0
   ) {
-    outer +=
+    style +=
       `height:${h}px;` +
       'overflow:hidden;';
   }
 
-  outer +=
-    `padding:${p}px;` +
+  style +=
+    `padding:${paddingTop}px ${paddingRight}px ${paddingBottom}px ${paddingLeft}px;` +
     `border-radius:${r}px;`;
 
   /*
-   * Only copy a background when it is a solid color.
-   *
-   * background.mode === "image" is intentionally ignored.
+   * Only include solid background colors.
+   * Uploaded background images remain intentionally excluded.
    */
   if (
     background?.mode === 'color' &&
     background.color
   ) {
-    outer +=
+    style +=
       `background-color:${background.color};`;
   }
 
   if (bw > 0) {
-    outer +=
+    style +=
       `border:${bw}px solid ` +
       `${border.color || 'rgba(0,0,0,1)'};`;
   }
 
-  /*
-   * INNER TEXT BLOCK
-   *
-   * Text margins are kept separate from card padding.
-   */
-  let inner =
-    `margin:${mt}px ${mr}px ${mb}px ${ml}px;`;
-
-  inner +=
+  style +=
     `color:${color};` +
     `font-size:${size}px;` +
     'line-height:1.3;' +
@@ -261,34 +263,14 @@ export function buildObsidianHtml({
     'overflow-wrap:anywhere;';
 
   if (family) {
-    inner +=
+    style +=
       `font-family:'${escapeCssString(family)}', sans-serif;`;
   }
 
   return (
-    `<div style="${outer}">` +
-      `<div style="${inner}">` +
-        `${escapeHtml(text)}` +
-      `</div>` +
-    `</div>`
-  );
-}
-
-/*
- * Copy the actual HTML SOURCE as plain text.
- *
- * This is intentional for Obsidian:
- *
- * clicking "Copy HTML" gives you:
- *
- * <div style="...">...</div>
- *
- * on the clipboard. When pasted into the Markdown source, Obsidian can render
- * that HTML while the note itself remains editable.
- */
-export function copyHtml(options) {
-  return copyPlain(
-    buildObsidianHtml(options)
+    `<p style="${style}">\n` +
+    `${escapeHtml(text)}\n` +
+    `</p>`
   );
 }
 
