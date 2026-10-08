@@ -53,7 +53,12 @@ export default function App() {
     bgMode: read('bgMode', 'transparent'),
     bgColor: read('bgColor', '#ffffff'),
     bgAlpha: read('bgAlpha', '1'),
-    padding: read('padding', '24'),
+    // Keep existing saved single-padding preferences as the starting value
+    // for all four new per-side controls.
+    paddingTop: read('paddingTop', read('padding', '24')),
+    paddingRight: read('paddingRight', read('padding', '24')),
+    paddingBottom: read('paddingBottom', read('padding', '24')),
+    paddingLeft: read('paddingLeft', read('padding', '24')),
     radius: read('radius', '12'),
     borderWidth: read('borderWidth', '0'),
     borderColor: read('borderColor', '#7c5cff'),
@@ -146,13 +151,20 @@ export default function App() {
     left: parseInt(imageStyle.marginLeft, 10) || 0
   }), [imageStyle.marginTop, imageStyle.marginRight, imageStyle.marginBottom, imageStyle.marginLeft]);
 
+  const padding = useMemo(() => ({
+    top: parseInt(imageStyle.paddingTop, 10) || 0,
+    right: parseInt(imageStyle.paddingRight, 10) || 0,
+    bottom: parseInt(imageStyle.paddingBottom, 10) || 0,
+    left: parseInt(imageStyle.paddingLeft, 10) || 0
+  }), [imageStyle.paddingTop, imageStyle.paddingRight, imageStyle.paddingBottom, imageStyle.paddingLeft]);
+
   const imageOptions = useMemo(() => ({
     color: rgba,
     fontSize: parseInt(size, 10),
     width: imageStyle.outputWidth || null,
     height: imageStyle.outputHeight || null,
     journalSafe: imageStyle.journalSafe,
-    padding: parseInt(imageStyle.padding, 10),
+    padding,
     radius: parseInt(imageStyle.radius, 10),
     align: imageStyle.textAlign,
     margin,
@@ -165,7 +177,7 @@ export default function App() {
       width: parseInt(imageStyle.borderWidth, 10),
       color: toRgba(imageStyle.borderColor, imageStyle.borderAlpha)
     }
-  }), [rgba, size, imageStyle, margin]);
+  }), [rgba, size, imageStyle, margin, padding]);
 
   /* Literal HTML copied for Obsidian. Background images are intentionally left
    * out; a solid background color still carries over. */
@@ -174,7 +186,7 @@ export default function App() {
     size: parseInt(size, 10),
     width: imageStyle.outputWidth || null,
     height: imageStyle.outputHeight || null,
-    padding: parseInt(imageStyle.padding, 10),
+    padding,
     radius: parseInt(imageStyle.radius, 10),
     align: imageStyle.textAlign,
     margin,
@@ -186,13 +198,13 @@ export default function App() {
       width: parseInt(imageStyle.borderWidth, 10),
       color: toRgba(imageStyle.borderColor, imageStyle.borderAlpha)
     }
-  }), [rgba, size, imageStyle, margin]);
+  }), [rgba, size, imageStyle, margin, padding]);
 
   /* CSS mirror of what the canvas draws, so every row on the page looks like
    * the PNG that row's export buttons produce. */
   const cardStyle = useMemo(() => {
     const style = {
-      padding: `${imageStyle.padding}px`,
+      padding: `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`,
       borderRadius: `${imageStyle.radius}px`
     };
     if (imageStyle.outputWidth) style.width = `${imageStyle.outputWidth}px`;
@@ -209,7 +221,7 @@ export default function App() {
       style.backgroundPosition = 'center';
     }
     return style;
-  }, [imageStyle]);
+  }, [imageStyle, padding]);
 
   const textLayoutStyle = useMemo(() => ({
     margin: `${margin.top}px ${margin.right}px ${margin.bottom}px ${margin.left}px`,

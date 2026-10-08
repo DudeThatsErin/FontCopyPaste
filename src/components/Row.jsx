@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { GoogleFonts } from '../google-fonts.js';
 import { copyHtml, copyPlain, copyRich } from '../lib/clipboard.js';
-import { copyImage, downloadImage } from '../lib/image.js';
+import { copyImage, downloadImage, downloadJpeg } from '../lib/image.js';
 
 /* Fetch a webfont only once the row scrolls into view — the catalog is a few
  * hundred families and eager loading would stall the page. */
@@ -63,6 +63,7 @@ export default function Row({
   });
 
   const fileName = `${item.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`;
+  const jpegFileName = `${item.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.jpg`;
 
   const handleText = () => {
     copyPlain(item.output).then(() => {
@@ -87,6 +88,13 @@ export default function Row({
     downloadImage(imageArgs(), fileName).then(
       () => { flashSaved(); onToast(`Saved ${fileName}`); },
       () => onToast('Couldn’t create the image')
+    );
+  };
+
+  const handleJpegDownload = () => {
+    downloadJpeg(imageArgs(), jpegFileName).then(
+      () => onToast(`Saved ${jpegFileName} — normal image, JPEG`),
+      () => onToast('Couldn’t create the JPEG')
     );
   };
 
@@ -161,6 +169,14 @@ export default function Row({
           onClick={handleDownload}
         >
           {savedFlashed ? 'Saved' : 'Download PNG'}
+        </button>
+        <button
+          type="button"
+          className="act"
+          title="Temporary A/B test: save the normal finished image as JPEG, without Journal-safe processing"
+          onClick={handleJpegDownload}
+        >
+          Download JPEG
         </button>
         <button
           type="button"

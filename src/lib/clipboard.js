@@ -156,11 +156,19 @@ export function buildObsidianHtml({
       10
     ) || 0;
 
-  const p =
-    Number.parseInt(
-      padding,
-      10
-    ) || 0;
+  const p = typeof padding === 'object'
+    ? {
+      top: Number.parseInt(padding.top, 10) || 0,
+      right: Number.parseInt(padding.right, 10) || 0,
+      bottom: Number.parseInt(padding.bottom, 10) || 0,
+      left: Number.parseInt(padding.left, 10) || 0
+    }
+    : {
+      top: Number.parseInt(padding, 10) || 0,
+      right: Number.parseInt(padding, 10) || 0,
+      bottom: Number.parseInt(padding, 10) || 0,
+      left: Number.parseInt(padding, 10) || 0
+    };
 
   const r =
     Number.parseInt(
@@ -199,16 +207,16 @@ export function buildObsidianHtml({
    * visual spacing stays the same without needing a second element.
    */
   const paddingTop =
-    p + mt;
+    p.top + mt;
 
   const paddingRight =
-    p + mr;
+    p.right + mr;
 
   const paddingBottom =
-    p + mb;
+    p.bottom + mb;
 
   const paddingLeft =
-    p + ml;
+    p.left + ml;
 
   let style =
     'box-sizing:border-box;' +

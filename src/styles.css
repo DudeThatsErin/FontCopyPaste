@@ -699,6 +699,23 @@ input[type="range"] {
   gap: 8px;
 }
 
+.slider-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slider-field input[type="range"] {
+  min-width: 0;
+}
+
+.slider-field span {
+  min-width: 30px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
 /* The row preview mirrors the fixed output canvas. The inner flex item gives
  * text-align a real width to align within, while its margin matches the canvas. */
 .sample-card {

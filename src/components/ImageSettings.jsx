@@ -40,16 +40,21 @@ export default function ImageSettings({ settings, update, onToast }) {
     update({ [key]: value });
   };
 
-  const marginField = (key, label) => (
+  const sliderField = (key, label, ariaLabel) => (
     <label className="mini-field">
       <span>{label}</span>
-      <input
-        type="number"
+      <div className="slider-field">
+        <input
+        type="range"
         min="0"
+        max="80"
         step="1"
+        aria-label={ariaLabel}
         value={settings[key]}
         onChange={(e) => update({ [key]: e.target.value })}
-      />
+        />
+        <span>{settings[key]}px</span>
+      </div>
     </label>
   );
 
@@ -133,8 +138,8 @@ export default function ImageSettings({ settings, update, onToast }) {
             Use Journal-safe crop buffer
           </label>
           <p className="sub-hint">
-            Copy image and Download PNG keep the finished banner centered in a 5:1 safe area,
-            with transparent sacrificial space outside it for Journal to crop. The preview is unchanged.
+            Copy image and Download PNG keep their normal dimensions, but center a complete
+            smaller banner over its background for Journal. The preview is unchanged.
           </p>
         </div>
 
@@ -157,10 +162,10 @@ export default function ImageSettings({ settings, update, onToast }) {
         <div className="control settings-block">
           <span className="field-label">Text margin</span>
           <div className="margin-grid">
-            {marginField('marginTop', 'Top')}
-            {marginField('marginRight', 'Right')}
-            {marginField('marginBottom', 'Bottom')}
-            {marginField('marginLeft', 'Left')}
+            {sliderField('marginTop', 'Top', 'Top text margin')}
+            {sliderField('marginRight', 'Right', 'Right text margin')}
+            {sliderField('marginBottom', 'Bottom', 'Bottom text margin')}
+            {sliderField('marginLeft', 'Left', 'Left text margin')}
           </div>
           <p className="sub-hint">Margin sits between the text and the card padding.</p>
         </div>
@@ -246,14 +251,11 @@ export default function ImageSettings({ settings, update, onToast }) {
 
         <div className="control settings-block">
           <span className="field-label">Padding</span>
-          <div className="color-row">
-            <input
-              type="range" min="0" max="80" step="1"
-              aria-label="Image padding"
-              value={settings.padding}
-              onChange={(e) => update({ padding: e.target.value })}
-            />
-            <span className="alpha-value">{settings.padding}px</span>
+          <div className="margin-grid">
+            {sliderField('paddingTop', 'Top', 'Top image padding')}
+            {sliderField('paddingRight', 'Right', 'Right image padding')}
+            {sliderField('paddingBottom', 'Bottom', 'Bottom image padding')}
+            {sliderField('paddingLeft', 'Left', 'Left image padding')}
           </div>
         </div>
 
